@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MadStack AI CMO — Marketing Automation</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #252530;
+    --accent: #00e5a0;
+    --accent2: #7c5cfc;
+    --accent3: #ff6b35;
+    --text: #f0f0f8;
+    --muted: #6b6b80;
+    --muted2: #3a3a4a;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* LAYOUT */
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 240px; min-width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* SIDEBAR */
+  .logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+  .logo-mark { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; }
+  .api-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .api-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .api-input-wrap { position: relative; }
+  .api-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 30px 7px 10px; font-family: var(--mono); font-size: 11px; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .api-input:focus { border-color: var(--accent); }
+  .api-status { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--muted2); transition: background 0.3s; }
+  .api-status.ok { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .api-model-select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-family: var(--sans); font-size: 12px; color: var(--text); outline: none; margin-top: 6px; cursor: pointer; }
+  .nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-group { margin-bottom: 4px; }
+  .nav-group-title { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 8px 16px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: var(--muted); cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(0,229,160,0.06); }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .sidebar-footer { padding: 14px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .sidebar-footer span { color: var(--accent); }
+
+  /* TOPBAR */
+  .topbar { padding: 16px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+  .topbar-title { font-family: var(--mono); font-size: 14px; color: var(--text); }
+  .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { display: inline-block; font-size: 10px; font-family: var(--mono); padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+  .badge-green { background: rgba(0,229,160,0.12); color: var(--accent); border: 1px solid rgba(0,229,160,0.25); }
+  .badge-purple { background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
+  .badge-orange { background: rgba(255,107,53,0.12); color: var(--accent3); border: 1px solid rgba(255,107,53,0.25); }
+
+  /* CONTENT AREA */
+  .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+  /* TABS PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* SECTION HEADER */
+  .section-head { margin-bottom: 24px; }
+  .section-head h2 { font-size: 20px; font-weight: 500; letter-spacing: -0.3px; }
+  .section-head p { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+
+  /* SERVICE SELECTOR */
+  .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .service-chip { padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; text-align: left; color: var(--muted); }
+  .service-chip:hover { border-color: var(--muted2); color: var(--text); }
+  .service-chip.selected { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.06); }
+  .service-chip .chip-icon { font-size: 18px; margin-bottom: 6px; display: block; }
+  .service-chip .chip-name { font-weight: 500; display: block; font-size: 12px; }
+  .service-chip .chip-tech { font-size: 10px; color: var(--muted); margin-top: 2px; display: block; }
+
+  /* PROMPT BUILDER */
+  .prompt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .field-select, .field-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: var(--sans); font-size: 13px; color: var(--text); outline: none; width: 100%; transition: border-color 0.2s; }
+  .field-select:focus, .field-input:focus { border-color: var(--accent); }
+  .field-textarea { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-family: var(--sans); font-size: 13px; color: var(--text); outline: none; width: 100%; resize: vertical; min-height: 90px; transition: border-color 0.2s; line-height: 1.6; }
+  .field-textarea:focus { border-color: var(--accent); }
+
+  /* GENERATE BTN */
+  .gen-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: #000; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 1px; padding: 11px 22px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; }
+  .gen-btn:hover { background: #00ffb3; transform: translateY(-1px); }
+  .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .gen-btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 11px; padding: 9px 16px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+  .gen-btn-secondary:hover { border-color: var(--muted2); color: var(--text); }
+
+  /* OUTPUT */
+  .output-box { margin-top: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .output-header { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .output-header span { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .output-body { padding: 20px; font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; min-height: 120px; }
+  .output-body.empty { color: var(--muted); font-style: italic; font-size: 13px; }
+  .copy-btn { font-size: 11px; font-family: var(--mono); background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* LOADER */
+  .loader { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,229,160,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* STRATEGY BOARD */
+  .strategy-board { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .strat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+  .strat-card h3 { font-size: 13px; font-weight: 500; color: var(--accent); margin-bottom: 10px; font-family: var(--mono); letter-spacing: 0.5px; }
+  .strat-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* CALENDAR */
+  .cal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .cal-week { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .cal-week h4 { font-size: 10px; font-family: var(--mono); color: var(--accent); letter-spacing: 1px; margin-bottom: 8px; }
+  .cal-task { font-size: 11px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); line-height: 1.4; }
+  .cal-task:last-child { border-bottom: none; }
+  .cal-task span { display: block; color: var(--text); font-size: 12px; }
+
+  /* BATCH PANEL */
+  .batch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .batch-table th { text-align: left; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .batch-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .batch-table tr:last-child td { border-bottom: none; }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.pending { background: var(--muted2); }
+  .status-dot.running { background: var(--accent2); animation: pulse 1s ease infinite; }
+  .status-dot.done { background: var(--accent); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ICP PANEL */
+  .icp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .icp-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .icp-card h4 { font-size: 11px; font-family: var(--mono); color: var(--accent2); letter-spacing: 1px; margin-bottom: 10px; }
+  .icp-item { font-size: 12px; color: var(--muted); padding: 4px 0; display: flex; gap: 6px; }
+  .icp-item::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .shell { flex-direction: column; height: auto; }
+    .sidebar { width: 100%; min-width: 0; }
+    .prompt-grid { grid-template-columns: 1fr; }
+    .strategy-board { grid-template-columns: 1fr; }
+    .cal-grid { grid-template-columns: 1fr 1fr; }
+    .icp-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">MadStack</div>
+      <div class="logo-sub">AI CMO · Marketing OS</div>
+    </div>
+    <div class="api-section">
+      <div class="api-label">LLM API Key</div>
+      <div class="api-input-wrap">
+        <input class="api-input" type="password" id="apiKey" placeholder="sk-ant-..." oninput="validateKey()" />
+        <div class="api-status" id="apiStatus"></div>
+      </div>
+      <select class="api-model-select" id="modelSelect">
+        <option value="claude-opus-4-5">Claude Opus 4.5</option>
+        <option value="claude-sonnet-4-5" selected>Claude Sonnet 4.5</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>
+      </select>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="nav-group-title">Strategy</div>
+        <div class="nav-item active" onclick="switchPanel('icp')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          ICP & Targeting
+        </div>
+        <div class="nav-item" onclick="switchPanel('positioning')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          Positioning
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Content Engine</div>
+        <div class="nav-item" onclick="switchPanel('content')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Content Generator
+        </div>
+        <div class="nav-item" onclick="switchPanel('social')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+          Social Posts
+        </div>
+        <div class="nav-item" onclick="switchPanel('email')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Cold Outreach
+        </div>
+        <div class="nav-item" onclick="switchPanel('calendar')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Content Calendar
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Campaigns</div>
+        <div class="nav-item" onclick="switchPanel('batch')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Batch Automation
+        </div>
+        <div class="nav-item" onclick="switchPanel('competitive')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Competitor Intel
+        </div>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <span>MadStack AI CMO</span> · Free tier<br>
+      Powered by Anthropic API<br>
+      Sylhet, Bangladesh 🇧🇩
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="panelTitle">ICP & Targeting</div>
+        <div class="topbar-sub" id="panelSub">Define who to market MadStack services to</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge badge-green">AI-Powered</span>
+        <span class="badge badge-purple">Free API</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ===== ICP PANEL ===== -->
+      <div class="panel active" id="panel-icp">
+        <div class="section-head">
+          <h2>Ideal Customer Profile</h2>
+          <p>AI-generated ICPs for each MadStack service — know exactly who to target and how to reach them.</p>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+          <select class="field-select" id="icpService" style="width:auto;min-width:200px;">
+            <option value="web">Web Development</option>
+            <option value="software">Software Engineering</option>
+            <option value="ai">AI & Chatbots</option>
+            <option value="automation">n8n Automation</option>
+            <option value="consultancy">IT Consultancy</option>
+          </select>
+          <button class="gen-btn" onclick="generateICP()"><span id="icpBtnTxt">GENERATE ICP</span></button>
+        </div>
+        <div class="output-box" id="icpOutput" style="display:none;">
+          <div class="output-header">
+            <span id="icpOutputLabel">ICP OUTPUT</span>
+            <button class="copy-btn" onclick="copyOutput('icpBody')">COPY</button>
+          </div>
+          <div class="output-body" id="icpBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== POSITIONING PANEL ===== -->
+      <div class="panel" id="panel-positioning">
+        <div class="section-head">
+          <h2>Positioning & Messaging</h2>
+          <p>Craft unique value propositions and messaging frameworks for each MadStack service.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Service</label>
+            <select class="field-select" id="posService">
+              <option>Web Development</option>
+              <option>Software Engineering</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Target Market</label>
+            <select class="field-select" id="posMarket">
+              <option>Dhaka SMBs</option>
+              <option>Chittagong exporters</option>
+              <option>Sylhet diaspora businesses</option>
+              <option>International startups</option>
+              <option>Bangladesh NGOs</option>
+              <option>E-commerce businesses</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label">Competitor to differentiate from</label>
+          <input class="field-input" id="posCompetitor" placeholder="e.g. local freelancers, Brain Station 23, Apurba Technologies" />
+        </div>
+        <button class="gen-btn" onclick="generatePositioning()"><span id="posBtnTxt">GENERATE POSITIONING</span></button>
+        <div class="output-box" id="posOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span>POSITIONING FRAMEWORK</span>
+            <button class="copy-btn" onclick="copyOutput('posBody')">COPY</button>
+          </div>
+          <div class="output-body" id="posBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== CONTENT GENERATOR ===== -->
+      <div class="panel" id="panel-content">
+        <div class="section-head">
+          <h2>Content Generator</h2>
+          <p>Generate blogs, case studies, whitepapers, and website copy tailored to MadStack's services.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Content Type</label>
+            <select class="field-select" id="contentType">
+              <option>Blog post (SEO)</option>
+              <option>Case study</option>
+              <option>Website hero copy</option>
+              <option>Service page copy</option>
+              <option>Whitepaper outline</option>
+              <option>FAQ section</option>
+              <option>Press release</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Service</label>
+            <select class="field-select" id="contentService">
+              <option>Web Development</option>
+              <option>Software Engineering</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Audience</label>
+            <input class="field-input" id="contentAudience" placeholder="e.g. Dhaka garments owners" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tone</label>
+            <select class="field-select" id="contentTone">
+              <option>Professional & technical</option>
+              <option>Friendly & approachable</option>
+              <option>Bold & direct</option>
+              <option>Consultative & advisory</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label">Topic / angle (optional)</label>
+          <input class="field-input" id="contentTopic" placeholder="e.g. How AI chatbots save 40 hours/week for RMG factories" />
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="gen-btn" onclick="generateContent()"><span id="contentBtnTxt">GENERATE CONTENT</span></button>
+        </div>
+        <div class="output-box" id="contentOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span id="contentOutputLabel">CONTENT OUTPUT</span>
+            <button class="copy-btn" onclick="copyOutput('contentBody')">COPY</button>
+          </div>
+          <div class="output-body" id="contentBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== SOCIAL PANEL ===== -->
+      <div class="panel" id="panel-social">
+        <div class="section-head">
+          <h2>Social Media Posts</h2>
+          <p>Generate LinkedIn, Facebook, and Twitter posts for MadStack — ready to publish.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Platform</label>
+            <select class="field-select" id="socialPlatform">
+              <option>LinkedIn</option>
+              <option>Facebook</option>
+              <option>Twitter/X</option>
+              <option>All 3 platforms</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Post Goal</label>
+            <select class="field-select" id="socialGoal">
+              <option>Awareness (new service launch)</option>
+              <option>Lead generation (DM us CTA)</option>
+              <option>Thought leadership</option>
+              <option>Case study / proof</option>
+              <option>Engagement (question post)</option>
+              <option>Offer / promotion</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Service to Promote</label>
+            <select class="field-select" id="socialService">
+              <option>Web Development</option>
+              <option>Software Engineering</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+              <option>Consulta CRM</option>
+              <option>POS System</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Variations</label>
+            <select class="field-select" id="socialVariations">
+              <option value="1">1 version</option>
+              <option value="3" selected>3 versions</option>
+              <option value="5">5 versions</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label">Key message or hook</label>
+          <input class="field-input" id="socialHook" placeholder="e.g. We automated a Chittagong factory's entire invoice process with n8n" />
+        </div>
+        <button class="gen-btn" onclick="generateSocial()"><span id="socialBtnTxt">GENERATE POSTS</span></button>
+        <div class="output-box" id="socialOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span>SOCIAL POSTS</span>
+            <button class="copy-btn" onclick="copyOutput('socialBody')">COPY ALL</button>
+          </div>
+          <div class="output-body" id="socialBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== EMAIL PANEL ===== -->
+      <div class="panel" id="panel-email">
+        <div class="section-head">
+          <h2>Cold Outreach & Email Sequences</h2>
+          <p>AI-written cold emails and follow-up sequences — personalized for Bangladesh and international markets.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Outreach Type</label>
+            <select class="field-select" id="emailType">
+              <option>Cold email (first touch)</option>
+              <option>Follow-up sequence (3 emails)</option>
+              <option>LinkedIn connection request</option>
+              <option>WhatsApp first message</option>
+              <option>Proposal follow-up</option>
+              <option>Re-engagement (past lead)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Service to pitch</label>
+            <select class="field-select" id="emailService">
+              <option>Web Development</option>
+              <option>Software Engineering</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Prospect type</label>
+            <input class="field-input" id="emailProspect" placeholder="e.g. Dhaka restaurant chain owner" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Pain point to address</label>
+            <input class="field-input" id="emailPain" placeholder="e.g. manual order tracking wastes 3 hours/day" />
+          </div>
+        </div>
+        <button class="gen-btn" onclick="generateEmail()"><span id="emailBtnTxt">GENERATE OUTREACH</span></button>
+        <div class="output-box" id="emailOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span>OUTREACH COPY</span>
+            <button class="copy-btn" onclick="copyOutput('emailBody')">COPY</button>
+          </div>
+          <div class="output-body" id="emailBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== CALENDAR PANEL ===== -->
+      <div class="panel" id="panel-calendar">
+        <div class="section-head">
+          <h2>Content Calendar</h2>
+          <p>Generate a 4-week content calendar for MadStack across all channels.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Focus service</label>
+            <select class="field-select" id="calService">
+              <option>All services</option>
+              <option>Web Development</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Primary channel</label>
+            <select class="field-select" id="calChannel">
+              <option>LinkedIn + Facebook</option>
+              <option>LinkedIn only</option>
+              <option>Blog + social</option>
+              <option>Email newsletter</option>
+            </select>
+          </div>
+        </div>
+        <button class="gen-btn" onclick="generateCalendar()"><span id="calBtnTxt">GENERATE CALENDAR</span></button>
+        <div class="output-box" id="calOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span>4-WEEK CONTENT CALENDAR</span>
+            <button class="copy-btn" onclick="copyOutput('calBody')">COPY</button>
+          </div>
+          <div class="output-body" id="calBody"></div>
+        </div>
+      </div>
+
+      <!-- ===== BATCH PANEL ===== -->
+      <div class="panel" id="panel-batch">
+        <div class="section-head">
+          <h2>Batch Automation</h2>
+          <p>Run multiple marketing tasks in one click — generate content for all services at once.</p>
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">Select tasks to run in batch:</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b1" checked> ICP for all 5 services</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b2" checked> LinkedIn post per service</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b3"> Cold email per service</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b4"> 4-week content calendar</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b5"> Positioning framework (all)</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="b6"> Competitor battlecard</label>
+          </div>
+          <button class="gen-btn" onclick="runBatch()" id="batchRunBtn">RUN BATCH</button>
+        </div>
+        <div id="batchQueue" style="display:none;">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th>Task</th><th>Service</th><th>Status</th><th>Output</th>
+              </tr>
+            </thead>
+            <tbody id="batchBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== COMPETITIVE PANEL ===== -->
+      <div class="panel" id="panel-competitive">
+        <div class="section-head">
+          <h2>Competitor Intelligence</h2>
+          <p>Generate battlecards and differentiation strategies against BD tech competitors.</p>
+        </div>
+        <div class="prompt-grid">
+          <div class="field-group">
+            <label class="field-label">Competitor</label>
+            <input class="field-input" id="compName" placeholder="e.g. Brain Station 23, Kaz Software, local freelancers" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">MadStack service to defend</label>
+            <select class="field-select" id="compService">
+              <option>All services</option>
+              <option>Web Development</option>
+              <option>AI & Chatbots</option>
+              <option>n8n Automation</option>
+              <option>IT Consultancy</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label">What you know about this competitor (optional)</label>
+          <textarea class="field-textarea" id="compContext" placeholder="e.g. They focus on large enterprise, slow delivery, expensive. We are faster, AI-native, Sylhet-based with lower pricing."></textarea>
+        </div>
+        <button class="gen-btn" onclick="generateBattlecard()"><span id="compBtnTxt">GENERATE BATTLECARD</span></button>
+        <div class="output-box" id="compOutput" style="display:none;margin-top:20px;">
+          <div class="output-header">
+            <span>COMPETITOR BATTLECARD</span>
+            <button class="copy-btn" onclick="copyOutput('compBody')">COPY</button>
+          </div>
+          <div class="output-body" id="compBody"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const COMPANY = `MadStack is a digital transformation agency based in Sylhet, Bangladesh. Founded by Goutom Dash (ex INC 5000 software engineer, 6+ years experience). Tagline: "Engineered in Bangladesh. Used Worldwide." Core principle: Systems Thinking, AI-First Strategy, Technical Honesty, Long-Term Partnership.
+
+Services (active):
+1. Web Development – Custom web apps, client portals, business platforms. Stack: React, Next.js, Node.js
+2. Software Engineering – Scalable backends, APIs, enterprise software. Stack: Node.js, Python, PostgreSQL
+3. AI & Chatbots – Intelligent AI assistants and automation agents. Stack: GPT-4, Claude, LangChain
+4. n8n Automation – End-to-end workflow automation. Stack: n8n, Zapier, REST APIs
+5. IT Consultancy – Technical planning, architecture review, digital roadmaps
+
+Products: Consulta CRM, POS System, Ecommerce Store, AI Chatbot Platform
+
+Target markets: Bangladesh businesses (Dhaka, Chittagong, Sylhet), international startups, diaspora businesses, RMG/garments sector, retail, NGOs, healthcare, e-commerce.`;
+
+const PANELS = {
+  icp: { title: 'ICP & Targeting', sub: 'Define who to market MadStack services to' },
+  positioning: { title: 'Positioning & Messaging', sub: 'Craft unique value propositions for each service' },
+  content: { title: 'Content Generator', sub: 'Blogs, case studies, website copy' },
+  social: { title: 'Social Media Posts', sub: 'LinkedIn, Facebook, Twitter — ready to publish' },
+  email: { title: 'Cold Outreach', sub: 'Cold emails and follow-up sequences' },
+  calendar: { title: 'Content Calendar', sub: '4-week content plan across all channels' },
+  batch: { title: 'Batch Automation', sub: 'Run multiple marketing tasks in one click' },
+  competitive: { title: 'Competitor Intel', sub: 'Battlecards and differentiation strategies' },
+};
+
+function switchPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  document.getElementById('panelTitle').textContent = PANELS[id].title;
+  document.getElementById('panelSub').textContent = PANELS[id].sub;
+}
+
+function getKey() { return document.getElementById('apiKey').value.trim(); }
+function getModel() { return document.getElementById('modelSelect').value; }
+
+function validateKey() {
+  const k = getKey();
+  document.getElementById('apiStatus').className = 'api-status' + (k.startsWith('sk-ant-') && k.length > 20 ? ' ok' : '');
+}
+
+async function callClaude(prompt, systemExtra = '') {
+  const key = getKey();
+  if (!key) { alert('Please enter your Anthropic API key in the sidebar.'); return null; }
+  const system = COMPANY + '\n\n' + systemExtra + '\n\nYou are the AI CMO of MadStack. Be specific, actionable, and use knowledge of Bangladesh market context. Write in English.';
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: getModel(), max_tokens: 1500, system, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (!res.ok) { const e = await res.json(); alert('API Error: ' + (e.error?.message || res.status)); return null; }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+async function withBtn(btnId, fn) {
+  const btn = document.getElementById(btnId);
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.closest ? btn.closest('button') : btn;
+  btn.parentElement.disabled = true;
+  try { await fn(); } finally { btn.textContent = orig; btn.parentElement.disabled = false; }
+}
+
+function showOutput(boxId, bodyId, text) {
+  document.getElementById(boxId).style.display = 'block';
+  document.getElementById(bodyId).textContent = text;
+  document.getElementById(bodyId).classList.remove('empty');
+}
+
+function copyOutput(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent);
+  event.target.textContent = 'COPIED!';
+  setTimeout(() => event.target.textContent = 'COPY', 1500);
+}
+
+async function generateICP() {
+  const svc = document.getElementById('icpService').value;
+  const svcNames = { web: 'Web Development', software: 'Software Engineering', ai: 'AI & Chatbots', automation: 'n8n Automation', consultancy: 'IT Consultancy' };
+  const btn = document.getElementById('icpBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-icp .gen-btn').disabled = true;
+  const text = await callClaude(`Generate a detailed Ideal Customer Profile (ICP) for MadStack's "${svcNames[svc]}" service. Include:
+1. Primary ICP (most likely buyer in Bangladesh)
+2. Secondary ICP (international/diaspora)
+3. Demographics & firmographics
+4. Pain points they face
+5. Where to find them online
+6. What messaging resonates
+7. Buying triggers
+8. Red flags (bad fit customers)
+Be specific with Bangladesh market context (industries, company sizes, locations).`);
+  btn.textContent = orig;
+  document.querySelector('#panel-icp .gen-btn').disabled = false;
+  if (text) showOutput('icpOutput', 'icpBody', text);
+}
+
+async function generatePositioning() {
+  const btn = document.getElementById('posBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-positioning .gen-btn').disabled = true;
+  const svc = document.getElementById('posService').value;
+  const market = document.getElementById('posMarket').value;
+  const comp = document.getElementById('posCompetitor').value || 'local freelancers';
+  const text = await callClaude(`Create a complete positioning and messaging framework for MadStack's ${svc} service targeting ${market}, differentiating from ${comp}.
+
+Include:
+1. One-liner value proposition (10 words max)
+2. Full positioning statement (Geoffrey Moore template)
+3. 3 key messages (one per ICP pain point)
+4. Proof points / evidence for each message
+5. Tone of voice guidelines
+6. What NOT to say (avoid)
+7. Sample tagline options (3 variations)`);
+  btn.textContent = orig;
+  document.querySelector('#panel-positioning .gen-btn').disabled = false;
+  if (text) showOutput('posOutput', 'posBody', text);
+}
+
+async function generateContent() {
+  const btn = document.getElementById('contentBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-content .gen-btn').disabled = true;
+  const type = document.getElementById('contentType').value;
+  const svc = document.getElementById('contentService').value;
+  const audience = document.getElementById('contentAudience').value || 'Bangladesh business owners';
+  const tone = document.getElementById('contentTone').value;
+  const topic = document.getElementById('contentTopic').value;
+  const text = await callClaude(`Write a complete "${type}" for MadStack's ${svc} service.
+Target audience: ${audience}
+Tone: ${tone}
+${topic ? 'Topic/angle: ' + topic : ''}
+
+Make it full, publish-ready content. Include headlines, structure, CTAs pointing to madstackbd.com. Be specific with examples relevant to Bangladesh businesses. SEO-optimized where applicable.`);
+  btn.textContent = orig;
+  document.querySelector('#panel-content .gen-btn').disabled = false;
+  if (text) showOutput('contentOutput', 'contentBody', text);
+}
+
+async function generateSocial() {
+  const btn = document.getElementById('socialBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-social .gen-btn').disabled = true;
+  const platform = document.getElementById('socialPlatform').value;
+  const goal = document.getElementById('socialGoal').value;
+  const svc = document.getElementById('socialService').value;
+  const variations = document.getElementById('socialVariations').value;
+  const hook = document.getElementById('socialHook').value;
+  const text = await callClaude(`Write ${variations} ${platform} post(s) for MadStack.
+Service: ${svc}
+Goal: ${goal}
+${hook ? 'Key message/hook: ' + hook : ''}
+
+For each variation:
+- Write the full post with emojis where appropriate
+- Include relevant hashtags
+- Add a clear CTA
+- Match the platform's character limits and style
+- Make it feel human, not corporate
+- Reference Bangladesh market context where relevant
+Label each variation clearly (Version 1, Version 2, etc.)`);
+  btn.textContent = orig;
+  document.querySelector('#panel-social .gen-btn').disabled = false;
+  if (text) showOutput('socialOutput', 'socialBody', text);
+}
+
+async function generateEmail() {
+  const btn = document.getElementById('emailBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-email .gen-btn').disabled = true;
+  const type = document.getElementById('emailType').value;
+  const svc = document.getElementById('emailService').value;
+  const prospect = document.getElementById('emailProspect').value || 'business owner';
+  const pain = document.getElementById('emailPain').value || 'operational inefficiency';
+  const text = await callClaude(`Write a "${type}" for MadStack's ${svc} service.
+Prospect type: ${prospect}
+Pain point to address: ${pain}
+
+Requirements:
+- Personalized and human (not template-y)
+- Subject line included for emails
+- Focus on their problem first, MadStack solution second
+- Short paragraphs, easy to read on mobile
+- Strong but soft CTA (book a free call / reply to this)
+- Mention MadStack is based in Sylhet, Bangladesh (trust builder for local), or "engineered in Bangladesh, serving globally" for international
+- If follow-up sequence: write all 3 emails with send timing notes`);
+  btn.textContent = orig;
+  document.querySelector('#panel-email .gen-btn').disabled = false;
+  if (text) showOutput('emailOutput', 'emailBody', text);
+}
+
+async function generateCalendar() {
+  const btn = document.getElementById('calBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-calendar .gen-btn').disabled = true;
+  const svc = document.getElementById('calService').value;
+  const channel = document.getElementById('calChannel').value;
+  const text = await callClaude(`Create a detailed 4-week content calendar for MadStack focusing on ${svc} across ${channel}.
+
+Format as:
+WEEK 1 — [Theme]
+Mon: [post type] — [topic]
+Wed: [post type] — [topic]
+Fri: [post type] — [topic]
+
+(repeat for weeks 2-4)
+
+For each entry include:
+- Content type (post, story, article, video idea, etc.)
+- Specific topic with angle
+- Target audience
+- Goal (awareness/leads/engagement)
+
+Make themes strategic — build awareness → interest → desire → action across the month. Include BD-specific events/context where relevant (Eid, harvest season, etc.).`);
+  btn.textContent = orig;
+  document.querySelector('#panel-calendar .gen-btn').disabled = false;
+  if (text) showOutput('calOutput', 'calBody', text);
+}
+
+async function generateBattlecard() {
+  const btn = document.getElementById('compBtnTxt');
+  const orig = btn.textContent;
+  btn.innerHTML = '<span class="loader" style="display:inline-block"></span>';
+  document.querySelector('#panel-competitive .gen-btn').disabled = true;
+  const comp = document.getElementById('compName').value || 'local IT agencies in Bangladesh';
+  const svc = document.getElementById('compService').value;
+  const context = document.getElementById('compContext').value;
+  const text = await callClaude(`Create a sales battlecard for MadStack vs ${comp} for ${svc}.
+${context ? 'Competitor context: ' + context : ''}
+
+Include:
+1. THEM vs US comparison table (pricing, speed, tech stack, team, AI capability, support)
+2. Where MadStack wins (our strengths)
+3. Where they might try to attack us (our vulnerabilities + how to handle)
+4. Key objection handlers ("Why MadStack over ${comp}?")
+5. Trap questions sales reps can ask prospects to disqualify competitors
+6. Proof points MadStack should collect
+7. One-sentence killer differentiator`);
+  btn.textContent = orig;
+  document.querySelector('#panel-competitive .gen-btn').disabled = false;
+  if (text) showOutput('compOutput', 'compBody', text);
+}
+
+const SERVICES = ['Web Development', 'Software Engineering', 'AI & Chatbots', 'n8n Automation', 'IT Consultancy'];
+
+async function runBatch() {
+  const key = getKey();
+  if (!key) { alert('Please enter your Anthropic API key first.'); return; }
+  const tasks = [];
+  if (document.getElementById('b1').checked) SERVICES.forEach(s => tasks.push({ label: 'ICP', service: s }));
+  if (document.getElementById('b2').checked) SERVICES.forEach(s => tasks.push({ label: 'LinkedIn Post', service: s }));
+  if (document.getElementById('b3').checked) SERVICES.forEach(s => tasks.push({ label: 'Cold Email', service: s }));
+  if (document.getElementById('b4').checked) tasks.push({ label: 'Content Calendar', service: 'All' });
+  if (document.getElementById('b5').checked) SERVICES.forEach(s => tasks.push({ label: 'Positioning', service: s }));
+  if (document.getElementById('b6').checked) tasks.push({ label: 'Battlecard', service: 'All vs competitors' });
+  if (!tasks.length) { alert('Select at least one task.'); return; }
+  
+  document.getElementById('batchQueue').style.display = 'block';
+  const tbody = document.getElementById('batchBody');
+  tbody.innerHTML = tasks.map((t, i) => `<tr id="brow${i}">
+    <td>${t.label}</td><td>${t.service}</td>
+    <td><span class="status-dot pending" id="bdot${i}"></span><span id="bstat${i}">Pending</span></td>
+    <td id="boutput${i}" style="font-size:11px;color:var(--muted);max-width:300px;word-break:break-word;"></td>
+  </tr>`).join('');
+  document.getElementById('batchRunBtn').disabled = true;
+
+  for (let i = 0; i < tasks.length; i++) {
+    document.getElementById('bdot'+i).className = 'status-dot running';
+    document.getElementById('bstat'+i).textContent = 'Running...';
+    let prompt = '';
+    const t = tasks[i];
+    if (t.label === 'ICP') prompt = `Write a brief ICP (3 bullet points each: Who, Pain, Where to find) for MadStack's ${t.service} service in Bangladesh.`;
+    else if (t.label === 'LinkedIn Post') prompt = `Write 1 LinkedIn post (max 200 words) promoting MadStack's ${t.service} service. Include 3 hashtags and a CTA.`;
+    else if (t.label === 'Cold Email') prompt = `Write a cold email (subject + 3 short paragraphs + CTA) pitching MadStack's ${t.service} to a Bangladesh business. Keep it under 120 words.`;
+    else if (t.label === 'Content Calendar') prompt = `Give a 2-week content calendar for MadStack (all services). 3 posts per week. Format: Day: [type] — [topic].`;
+    else if (t.label === 'Positioning') prompt = `One-liner value prop + 3 key messages for MadStack's ${t.service} service in Bangladesh market.`;
+    else if (t.label === 'Battlecard') prompt = `3 key MadStack advantages over ${t.service}. Bullet format.`;
+    const result = await callClaude(prompt);
+    document.getElementById('bdot'+i).className = 'status-dot done';
+    document.getElementById('bstat'+i).textContent = 'Done';
+    if (result) document.getElementById('boutput'+i).textContent = result.slice(0, 180) + (result.length > 180 ? '...' : '');
+  }
+  document.getElementById('batchRunBtn').disabled = false;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EntryType {
+  content_creation
+  publication
+  cold_outreach
+  campaign
+  optimization
+  social_media
+  research
+  event
+  others
+  lead_followup
+  lead_generation
+
+  @@map("entry_type")
+}
+
+model Company {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  tagline        String?
+  description    String?
+  services       Json?
+  products       Json?
+  website        String?
+  location       String?
+  founder        String?
+  targetMarkets  Json?    @map("target_markets")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  users     User[]
+  outputs   Output[]
+  workspaces Workspace[]
+
+  @@map("companies")
+}
+
+model Workspace {
+  id             String   @id @default(uuid()) @db.Uuid
+  companyId      String   @map("company_id") @db.Uuid
+  name           String
+  serviceName    String
+  serviceType    String   @default("service")
+  website        String?
+  description    String?
+  location       String?
+  targetMarkets  Json?
+  status         String   @default("idle")
+  crawledContent String?
+  outputs        Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  company        Company        @relation(fields: [companyId], references: [id])
+  tasks          Task[]
+  leads          Lead[]
+  calendarEntries CalendarEntry[]
+  contents       Content[]
+
+  @@map("workspaces")
+}
+
+model Task {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  title       String
+  description String?
+  priority    String    @default("P3")
+  status      String    @default("pending")
+  category    String    @default("General")
+  dueDate     DateTime? @map("due_date")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model Lead {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  companyName String
+  contactName String?
+  email       String?
+  phone       String?
+  industry    String?
+  stage       String   @default("new")
+  source      String?
+  linkedinUrl String?  @map("linkedin_url")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("leads")
+}
+
+model CalendarEntry {
+  id          String     @id @default(uuid()) @db.Uuid
+  workspaceId String     @map("workspace_id") @db.Uuid
+  title       String
+  description String?
+  date        DateTime
+  entryType   EntryType
+  channel     String?
+  status      String     @default("planned")
+  metadata    Json?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_entries")
+}
+
+model Content {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  title       String
+  contentType String
+  platform    String?
+  status      String    @default("draft")
+  body        String?
+  scheduledAt DateTime? @map("scheduled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("contents")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  companyId    String?  @map("company_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  company Company? @relation(fields: [companyId], references: [id])
+  outputs Output[]
+
+  @@map("users")
+}
+
+model Output {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  module    String
+  service   String
+  prompt    String
+  output    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@map("outputs")
+}
