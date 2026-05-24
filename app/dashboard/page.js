@@ -41,55 +41,245 @@ const inputStyle = {
 };
 const selectStyle = { ...inputStyle, cursor: 'pointer' };
 
-// ---- Workspace Form ---- //
+const STAGE_GOALS = {
+  'pre-launch': ['Build anticipation', 'Validate demand', 'Grow waitlist'],
+  'just-launched': ['Acquire first users', 'Get first paying customers', 'Build brand awareness'],
+  established: ['Scale user base', 'Increase revenue', 'Expand to new markets'],
+  pivoting: ['Re-introduce brand', 'Enter new segment', 'Win back users'],
+};
+
+const CHANNELS = ['LinkedIn', 'Twitter/X', 'Email', 'Blog/SEO', 'Community', 'Partnerships', 'Content Marketing'];
+
+// ---- Step-based Workspace Form ---- //
+const FORM_STEPS = [
+  { label: 'Product', emoji: '📦' },
+  { label: 'Audience', emoji: '🎯' },
+  { label: 'Stage', emoji: '🚀' },
+  { label: 'Channels', emoji: '📡' },
+];
+
 function WorkspaceForm({ onCreate }) {
+  const [step, setStep] = useState(0);
   const [serviceName, setServiceName] = useState('');
   const [serviceType, setServiceType] = useState('service');
   const [website, setWebsite] = useState('');
+  const [targetRegion, setTargetRegion] = useState('');
+  const [targetCountry, setTargetCountry] = useState('');
+  const [stage, setStage] = useState('');
+  const [primaryGoal, setPrimaryGoal] = useState('');
+  const [channels, setChannels] = useState([]);
   const [busy, setBusy] = useState(false);
+
+  const toggleChannel = (ch) => {
+    setChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
+  };
+
+  const canNext = () => {
+    if (step === 0) return serviceName.trim().length > 0;
+    if (step === 1) return true;
+    if (step === 2) return stage.length > 0 && primaryGoal.length > 0;
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!canNext()) return;
+    setStep(s => Math.min(s + 1, FORM_STEPS.length - 1));
+  };
 
   const handleSubmit = () => {
     if (!serviceName.trim() || busy) return;
     setBusy(true);
-    onCreate({ name: null, serviceName: serviceName.trim(), serviceType, website: website.trim() });
+    onCreate({
+      name: null, serviceName: serviceName.trim(), serviceType,
+      website: website.trim(), stage, primaryGoal,
+      channels: channels.length > 0 ? channels : null,
+      targetRegion: targetRegion.trim() || null,
+      targetCountry: targetCountry.trim() || null,
+    });
+  };
+
+  const pct = ((step + 1) / FORM_STEPS.length) * 100;
+
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              What are you marketing?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              Tell us about your product or service so we know what to build the strategy around.
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Product or Service Name')}
+              <input autoFocus value={serviceName} onChange={e => setServiceName(e.target.value)} style={inputStyle} placeholder="e.g. AI Chatbot, Web Dev, ERP Solution" />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Type')}
+              <select value={serviceType} onChange={e => setServiceType(e.target.value)} style={selectStyle}>
+                <option value="service">Service</option><option value="product">Product</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Website URL (optional — we crawl it for context)')}
+              <input value={website} onChange={e => setWebsite(e.target.value)} style={inputStyle} placeholder="https://yoursite.com" />
+            </div>
+          </>
+        );
+      case 1:
+        return (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              Who are you targeting?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              Where does your ideal customer live? This helps us tailor the messaging and channel strategy.
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Target Region')}
+              <input autoFocus value={targetRegion} onChange={e => setTargetRegion(e.target.value)} style={inputStyle} placeholder="e.g. South Asia, Middle East, Europe" />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Target Country')}
+              <input value={targetCountry} onChange={e => setTargetCountry(e.target.value)} style={inputStyle} placeholder="e.g. Bangladesh, UAE, UK" />
+            </div>
+          </>
+        );
+      case 2:
+        return (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              Where are you in your journey?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              Your stage determines what kind of marketing moves will matter most right now.
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              {fieldLabel('Product Stage')}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { value: 'pre-launch', label: 'Pre-launch' },
+                  { value: 'just-launched', label: 'Just launched' },
+                  { value: 'established', label: 'Established' },
+                  { value: 'pivoting', label: 'Pivoting / Re-launching' },
+                ].map(opt => (
+                  <button key={opt.value} type="button" onClick={() => { setStage(opt.value); setPrimaryGoal(''); }}
+                    style={{
+                      padding: '8px 16px', borderRadius: 8, border: '1px solid',
+                      borderColor: stage === opt.value ? 'var(--accent)' : 'var(--border)',
+                      background: stage === opt.value ? 'rgba(0,184,148,0.08)' : 'var(--surface)',
+                      color: stage === opt.value ? 'var(--accent)' : 'var(--text)',
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 13, cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {stage && (
+              <div style={{ marginBottom: 18 }}>
+                {fieldLabel('Primary Goal')}
+                <select value={primaryGoal} onChange={e => setPrimaryGoal(e.target.value)} style={selectStyle}>
+                  <option value="">Select a goal...</option>
+                  {(STAGE_GOALS[stage] || []).map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <div style={{ fontSize: 22, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+              How will you reach them?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              Pick the channels you want to focus on. We'll build your content and outreach around them.
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              {fieldLabel('Focus Channels')}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {CHANNELS.map(ch => (
+                  <button key={ch} type="button" onClick={() => toggleChannel(ch)}
+                    style={{
+                      padding: '8px 18px', borderRadius: 20, border: '1px solid',
+                      borderColor: channels.includes(ch) ? 'var(--accent)' : 'var(--border)',
+                      background: channels.includes(ch) ? 'var(--accent)' : 'var(--surface)',
+                      color: channels.includes(ch) ? '#fff' : 'var(--text)',
+                      fontFamily: "'DM Sans', sans-serif", fontSize: 13, cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}>
+                    {ch}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        );
+    }
   };
 
   return (
     <div style={styles.formWrap}>
-      <div style={styles.formCard}>
-        <div style={{ fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
-          Let's market your product
-        </div>
-        <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 28, lineHeight: 1.6 }}>
-          Tell us about your product or service. We'll build a complete marketing strategy — ICP, positioning, competitor analysis, content plan, tasks, outreach, and a full calendar.
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          {fieldLabel('Product or Service Name')}
-          <input value={serviceName} onChange={e => setServiceName(e.target.value)} style={inputStyle} placeholder="e.g. AI Chatbot, Web Dev, ERP Solution" />
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          {fieldLabel('Type')}
-          <select value={serviceType} onChange={e => setServiceType(e.target.value)} style={selectStyle}>
-            <option value="service">Service</option><option value="product">Product</option>
-          </select>
+      <div style={{ ...styles.formCard, maxWidth: 520 }}>
+        {/* Steps indicator */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 28 }}>
+          {FORM_STEPS.map((s, i) => (
+            <div key={s.label} style={{
+              flex: 1, height: 3, borderRadius: 2,
+              background: i <= step ? 'var(--accent)' : 'var(--border)',
+              transition: 'background 0.2s',
+            }} />
+          ))}
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          {fieldLabel('Website URL (optional — we crawl it for context)')}
-          <input value={website} onChange={e => setWebsite(e.target.value)} style={inputStyle} placeholder="https://yoursite.com" />
+        <div style={{ display: 'flex', gap: 16, marginBottom: 28 }}>
+          {FORM_STEPS.map((s, i) => (
+            <div key={s.label} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontFamily: "'Space Mono', monospace",
+              color: i === step ? 'var(--accent)' : i < step ? 'var(--muted)' : 'var(--muted2)',
+              letterSpacing: 0.5,
+            }}>
+              <span style={{ fontSize: 13 }}>{s.emoji}</span>
+              {s.label}
+            </div>
+          ))}
         </div>
 
-        <button onClick={handleSubmit} disabled={busy} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          background: 'var(--accent)', color: '#fff',
-          fontFamily: "'Space Mono', monospace", fontSize: 13,
-          fontWeight: 700, letterSpacing: 1, padding: '13px 32px',
-          borderRadius: 8, border: 'none', cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.5 : 1,
-        }}>
-          {busy ? <><span className="loader" /> STARTING</> : 'START ONBOARDING'}
-        </button>
+        {renderStep()}
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
+          {step > 0 ? (
+            <button onClick={() => setStep(s => s - 1)} style={{
+              background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)',
+              borderRadius: 6, padding: '9px 20px', fontFamily: "'Space Mono', monospace",
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+            }}>← BACK</button>
+          ) : <div />}
+
+          {step < FORM_STEPS.length - 1 ? (
+            <button onClick={handleNext} disabled={!canNext()} style={{
+              background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6,
+              padding: '9px 24px', fontFamily: "'Space Mono', monospace", fontSize: 11,
+              fontWeight: 700, letterSpacing: 1, cursor: canNext() ? 'pointer' : 'not-allowed',
+              opacity: canNext() ? 1 : 0.4,
+            }}>NEXT →</button>
+          ) : (
+            <button onClick={handleSubmit} disabled={busy} style={{
+              background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6,
+              padding: '9px 24px', fontFamily: "'Space Mono', monospace", fontSize: 11,
+              fontWeight: 700, letterSpacing: 1, cursor: busy ? 'not-allowed' : 'pointer',
+              opacity: busy ? 0.5 : 1,
+            }}>
+              {busy ? <><span className="loader" /> STARTING</> : 'START ONBOARDING'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -213,7 +403,7 @@ export default function DashboardPage() {
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
   const outputs = activeWorkspace?.outputs || {};
 
-  const handleCreateWorkspace = async ({ name, serviceName, serviceType, website }) => {
+  const handleCreateWorkspace = async ({ name, serviceName, serviceType, website, stage, primaryGoal, channels, targetRegion, targetCountry }) => {
     setOnboardingState('creating');
     setOnboardingStep('crawl');
     setOnboardingError('');
@@ -223,7 +413,7 @@ export default function DashboardPage() {
       const createRes = await fetch('/api/workspace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, serviceName, serviceType, website }),
+        body: JSON.stringify({ name, serviceName, serviceType, website, stage, primaryGoal, channels, targetRegion, targetCountry }),
       });
       const createData = await createRes.json();
       if (!createData.workspace) throw new Error(createData.error || 'Failed');

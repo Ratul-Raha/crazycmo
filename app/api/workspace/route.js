@@ -40,7 +40,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, serviceName, serviceType, website } = await request.json();
+    const { name, serviceName, serviceType, website, stage, primaryGoal, channels, targetRegion, targetCountry } = await request.json();
     if (!serviceName) {
       return NextResponse.json({ error: 'Service/product name is required' }, { status: 400 });
     }
@@ -52,6 +52,11 @@ export async function POST(request) {
         serviceName,
         serviceType: serviceType || 'service',
         website: website || '',
+        stage: stage || null,
+        primaryGoal: primaryGoal || null,
+        channels: channels || null,
+        targetRegion: targetRegion || null,
+        targetCountry: targetCountry || null,
         status: 'idle',
         outputs: {
           icp: '',

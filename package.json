@@ -23,11 +23,13 @@
     "antd": "^6.4.3",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.2.0",
+    "duck-duck-scrape": "^2.2.7",
     "duckduckgo-search": "^1.0.7",
     "groq-sdk": "^0.10.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^14.2.0",
     "pg": "^8.21.0",
+    "playwright": "^1.60.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },
